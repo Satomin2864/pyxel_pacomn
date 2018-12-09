@@ -1,7 +1,8 @@
 import pyxel
-import math
-import numpy as np
-import time
+# import math
+# import numpy as np
+# import time
+
 class Pacman:
     def __init__(self):
         """
@@ -10,41 +11,51 @@ class Pacman:
         # 描画されるドットの座標
         self.x = 8
         self.y = 8
-        #
+
+        # パックマンの進む方向の情報
         self.x_change_quantity = 0
         self.y_change_quantity = 0
+
         # パックマンのノーマルは黄色
         # クッキーを食べると青で強くなる
         self.state = "yellow"
+
+        # 現状使ってない
+        # 実装としては１フレーム毎に増えてる
         self.count = 0
 
         # 0方向なし, 1 上, 2を下, 3を右, 4を左
         self.vectol = 0
+
         # 今いるタイルを座標化する
-        # self.tile_x = int(self.x/8)
-        # self.tile_y = int(self.y/8)
         self.tile_x = 1
         self.tile_y = 1
+
+        # 描画するかのフラグ
         self.draw_flag = False
+
+        # 使ってない
         self.last_frame_count = 0
+
+        # どのパックマンをプロットするかの情報
         self.plot_pacman_x_coordinate = 0
+
+        # スコア
+        # あとで実装
         self.score = 0
 
 
 class App:
     def __init__(self):
-        pyxel.init(160,160,caption="進捗", fps=20)
+        pyxel.init(160,160,caption="進捗", fps=25)
         # pyxel.run(self.update, self.draw)
         pyxel.load('pacman.pyxel')
         self.count = 0
         self.now_frame = pyxel.frame_count
         self.reset()
-        self.map_state = pyxel.tilemap(0)
-        # self.deback_tile()
-        # for x in dir(pyxel):
-        #     print(x)
-        # self.deback()
-        # self.deback_draw()
+        self.tilemap_state = pyxel.tilemap(0)
+        for i in self.tilemap_state.data:
+            print(i)
         pyxel.run(self.update, self.draw)
 
     def deback_tile(self):
@@ -56,13 +67,28 @@ class App:
         self.tilemap_draw()
         # パックマン
         # pyxel.blt(self.x+8,self.y+8,0,0,0,8,8)
+        # self.draw_cookie()
+        # self.draw_pcookie()
         self.pacman_draw()
         self.draw_text()
+
         # self.pacman_draw_afet()
         self.count += 1
         # print(pyxel.copy(self.x,self.y,0,0,8,8,8)
         # self.deback_draw()
-
+    def draw_cookie(self):
+        for i in range(16):
+            for j in range(16):
+                if self.tilemap_state.get(i, j) == 5:
+                    pyxel.blt(i*8,j*8,0,8,16,8,8)
+    def draw_pcookie(self):
+        # 手打ちでおくよ
+        # pyxel.blt(tile_x*8,tile_y*8,0,0,16,8,8)
+        pyxel.blt(1*8,14*8,0,0,16,8,8)
+        pyxel.blt(14*8,1*8,0,0,16,8,8)
+        pyxel.blt(14*8,14*8,0,0,16,8,8)
+    def update_cookie(self):
+        pass
     def draw_text(self):
         # ここもとりあえずはよし
         s = ""
@@ -88,7 +114,7 @@ class App:
         u = 0
         v = 0
         w = 16
-        h = 17
+        h = 16
         pyxel.bltm(base_x,base_y,tm,u,v,w,h)
 
     def pacman_draw(self):
@@ -173,41 +199,48 @@ class App:
                  print("not move")
 
 
+    def tile_update(self):
+        print(self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y))
+        pyxel.blt(self.pacman.tile_x, self.pacman.tile_y, 0,40,0,8,8)
+        # if self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y) == 64:
+
 
     def pacman_move(self):
         if self.pacman.x % 8 == 0 and self.pacman.y % 8 == 0:
-            if self.map_state.get(self.pacman.tile_x + self.pacman.x_change_quantity, self.pacman.tile_y + self.pacman.y_change_quantity) == 33:
+            if self.tilemap_state.get(self.pacman.tile_x + self.pacman.x_change_quantity, self.pacman.tile_y + self.pacman.y_change_quantity) == 33:
                 self.pacman.x_change_quantity = 0
                 self.pacman.y_change_quantity = 0
                 # self.pacman.vectol = 0
             elif pyxel.btn(pyxel.KEY_W):
-                if self.map_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 5:
+                if self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 5 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 64 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 65:
                     self.pacman.x_change_quantity =  0
                     self.pacman.y_change_quantity = -1
                     self.pacman.vectol = 1
                 # print("KEY_W")
             elif pyxel.btn(pyxel.KEY_S):
-                if self.map_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 5:
+                if self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 5 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 64 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 65:
                     self.pacman.x_change_quantity =  0
                     self.pacman.y_change_quantity =  1
                     self.pacman.vectol = 2
             elif pyxel.btn(pyxel.KEY_D):
-                if self.map_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 5:
+                if self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 5 or self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 64 or self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 65:
                     self.pacman.x_change_quantity =  1
                     self.pacman.y_change_quantity =  0
                     self.pacman.vectol = 3
             elif pyxel.btn(pyxel.KEY_A):
-                if self.map_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 5:
+                if self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 5 or self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 64 or self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 65:
                     self.pacman.x_change_quantity = -1
                     self.pacman.y_change_quantity =  0
                     self.pacman.vectol = 4
+            # self.tile_update()
             self.pacman.tile_x += self.pacman.x_change_quantity
             self.pacman.tile_y += self.pacman.y_change_quantity
+
         # self.pacman.tile_x = int(self.pacman.x/8)
         # self.pacman.tile_y = int(self.pacman.y/8)
         print("pacman.x = {}, pacman.y = {}".format(self.pacman.x, self.pacman.y))
         print("tile_x = {}, tile_y = {}".format(self.pacman.tile_x, self.pacman.tile_y))
-        print(self.map_state.get(self.pacman.tile_x, self.pacman.tile_y))
+        # print(self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y))
         # print(self.map_state.get(1, 1))
 
         self.pacman.x += self.pacman.x_change_quantity
