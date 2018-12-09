@@ -71,7 +71,7 @@ class App:
         # self.draw_pcookie()
         self.pacman_draw()
         self.draw_text()
-
+        self.update_cookie()
         # self.pacman_draw_afet()
         self.count += 1
         # print(pyxel.copy(self.x,self.y,0,0,8,8,8)
@@ -87,8 +87,14 @@ class App:
         pyxel.blt(1*8,14*8,0,0,16,8,8)
         pyxel.blt(14*8,1*8,0,0,16,8,8)
         pyxel.blt(14*8,14*8,0,0,16,8,8)
-    def update_cookie(self):
+
+    def addscore_cookie(self):
         pass
+    def update_cookie(self):
+        if self.tilemap_state.get(self.pacman.tile_x,self.pacman.tile_y) == 65:
+            self.pacman.score += 30
+        pyxel.tilemap(0).set(self.pacman.tile_x,self.pacman.tile_y,5,refimg=0)
+
     def draw_text(self):
         # ここもとりあえずはよし
         s = ""
