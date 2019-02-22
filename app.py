@@ -1,31 +1,20 @@
 import pyxel
-# import math
-# import numpy as np
-# import time
 
 class Pacman:
     def __init__(self):
         """
         pacman自体を生成するクラス
         """
+        # 0方向なし, 1 上, 2を下, 3を右, 4を左
+        self.direction = 0
+
         # 描画されるドットの座標
-        self.x = 8
-        self.y = 8
+        self.dot_x = 8
+        self.dot_y = 8
 
         # パックマンの進む方向の情報
         self.x_change_quantity = 0
         self.y_change_quantity = 0
-
-        # パックマンのノーマルは黄色
-        # クッキーを食べると青で強くなる
-        self.state = "yellow"
-
-        # 現状使ってない
-        # 実装としては１フレーム毎に増えてる
-        self.count = 0
-
-        # 0方向なし, 1 上, 2を下, 3を右, 4を左
-        self.vectol = 0
 
         # 今いるタイルを座標化する
         self.tile_x = 1
@@ -34,80 +23,158 @@ class Pacman:
         # 描画するかのフラグ
         self.draw_flag = False
 
-        # 使ってない
-        self.last_frame_count = 0
-
         # どのパックマンをプロットするかの情報
         self.plot_pacman_x_coordinate = 0
 
         # スコア
-        # あとで実装
         self.score = 0
+class Enemy:
+    def __init__(self,tile_x, tile_y):
+        # 描画されるドットの座標
+        self.dot_x = 8 * tile_x
+        self.dot_y = 8 * tile_y
+        # 敵の進む方向の情報
+        self.x_change_quantity = 0
+        self.y_change_quantity = 0
+        # 0方向なし, 1 上, 2を下, 3を右, 4を左
+        self.direction = 0
 
-
+        # 今いるタイルを座標化する
+        self.tile_x = tile_x
+        self.tile_y = tile_y
+        # いらない説はある
+        self.score = 0
+        self.update_flag = False
 class App:
     def __init__(self):
-        pyxel.init(160,160,caption="進捗", fps=25)
-        # pyxel.run(self.update, self.draw)
+        # ゲームの設定。widthとheightの単位はドット
+        # init(width, height, [caption], [fps])
+        pyxel.init(128,140,caption="パックマンぽいゲーム", fps=25)
+        # 作成したドット絵やタイルマップの情報を読み込む
         pyxel.load('pacman.pyxel')
-        self.count = 0
-        self.now_frame = pyxel.frame_count
-        self.reset()
+        # 追加
+        # パックマンクラスをインスタンス生成する
+        self.pacman = Pacman()
+        self.enemy = Enemy(7,7)
+        # 追加
+        # タイルマップの情報を持った変数を生成
         self.tilemap_state = pyxel.tilemap(0)
-        for i in self.tilemap_state.data:
-            print(i)
+        # 毎フレーム毎にupdateとdrawを呼び出す
         pyxel.run(self.update, self.draw)
 
-    def deback_tile(self):
-        for i in self.map_state.data:
-            print(i)
+    # ゲーム内で扱う情報を更新したり、キー入力の処理などを行う
+    def update(self):
+        # qキーが押されたらゲームを終了する。
+        if pyxel.btnp(pyxel.KEY_Q):
+            pyxel.quit()
 
+        # 追加：パックマンの移動処理を実装
+        self.update_pacman_state()
+        # self.update_enemy_state()
+        self.update_tilemap()
+
+    def update_enemy_state(self):
+        # 描画が終わったら、次の移動判定をする
+        if self.enemy.dot_x % 8 == 0 and self.enemy.dot_y % 8 == 0:
+            # まずは適当に動くやつ決めるかな
+            if self.tilemap_state.get(self.enemy.tile_x + self.enemy.x_change_quantity ,self.enemy.tile_y + self.enemy.y_change_quantity) == 33:
+                self.enemy.update_flag = False
+            if self.enemy.update_flag == False:
+                tmp_x = 0
+                tmp_y = 0
+                import random as rand
+                # TODO
+                # 今の実装だと、ここで無限ループ入るから描画が止まる説
+                while True:
+                    tmp_x = rand.choice([1, -1, 0])
+                    tmp_y = rand.choice([1, -1, 0])
+                    if abs(tmp_x) != abs(tmp_y):
+                        print(self.tilemap_state.get(self.enemy.tile_x + tmp_x ,self.enemy.tile_y + tmp_y))
+                        if self.tilemap_state.get(self.enemy.tile_x + tmp_x ,self.enemy.tile_y + tmp_y) != 33:
+                            break
+                self.enemy.x_change_quantity = tmp_x
+                self.enemy.y_change_quantity = tmp_y
+                print("tmp_x = {}, tmp_y = {}".format(self.enemy.tile_x + tmp_x,self.enemy.tile_y + tmp_y))
+                # self.enemy.update_flag = True
+            print(self.tilemap_state.get(self.enemy.tile_x + self.enemy.x_change_quantity,self.enemy.tile_y + self.enemy.y_change_quantity))
+
+            if self.tilemap_state.get(self.enemy.tile_x + self.enemy.x_change_quantity,self.enemy.tile_y + self.enemy.y_change_quantity) == 33:
+                # self.enemy.x_change_quantity = 0
+                # self.enemy.y_change_quantity = 0
+                self.enemy.update_flag = True
+            else:
+                print("test")
+                self.enemy.tile_x += self.enemy.x_change_quantity
+                self.enemy.tile_y += self.enemy.x_change_quantity
+
+        self.enemy.dot_x += self.enemy.x_change_quantity
+        self.enemy.dot_y += self.enemy.y_change_quantity
+
+    def update_pacman_state(self):
+        # 描画が終わったら、次の移動判定をする
+        if self.pacman.dot_x % 8 == 0 and self.pacman.dot_y % 8 == 0:
+            # 進行方向を確認
+            # 壁に行こうとしてたら
+            if self.tilemap_state.get(self.pacman.tile_x + self.pacman.x_change_quantity, self.pacman.tile_y + self.pacman.y_change_quantity) == 33:
+                # その場所から動かないように値に変える
+                self.pacman.x_change_quantity = 0
+                self.pacman.y_change_quantity = 0
+            # Wキーが押されていた場合に
+            elif pyxel.btn(pyxel.KEY_W):
+                # 次に移動する先が、背景、クッキー、パワークッキーなら
+                if self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 5 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 64 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 65:
+                    # 上に行くように設定
+                    self.pacman.x_change_quantity =  0
+                    self.pacman.y_change_quantity = -1
+                    # 描画する向きを上に設定
+                    self.pacman.vectol = 1
+            # Sキーが押されていた場合に
+            elif pyxel.btn(pyxel.KEY_S):
+                # 次に移動する先が、背景、クッキー、パワークッキーなら
+                if self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 5 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 64 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 65:
+                    # 下に行くように設定
+                    self.pacman.x_change_quantity =  0
+                    self.pacman.y_change_quantity =  1
+                    # 描画する向きを下に設定
+                    self.pacman.vectol = 2
+            # Dキーが押されていた場合に
+            elif pyxel.btn(pyxel.KEY_D):
+                # 次に移動する先が、背景、クッキー、パワークッキーなら
+                if self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 5 or self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 64 or self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 65:
+                    # 右に行くように設定
+                    self.pacman.x_change_quantity =  1
+                    self.pacman.y_change_quantity =  0
+                    # 描画する向きを右に設定
+                    self.pacman.vectol = 3
+            # Aキーが押されていた場合に
+            elif pyxel.btn(pyxel.KEY_A):
+                # 次に移動する先が、背景、クッキー、パワークッキーなら
+                if self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 5 or self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 64 or self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 65:
+                    # 左にいくように設定
+                    self.pacman.x_change_quantity = -1
+                    self.pacman.y_change_quantity =  0
+                    # 描画する向きを左に設定
+                    self.pacman.vectol = 4
+
+            # タイルの座標を進行方向に合わせて変える
+            self.pacman.tile_x += self.pacman.x_change_quantity
+            self.pacman.tile_y += self.pacman.y_change_quantity
+
+        # 毎フレーム毎に描画する座標を変更していく
+        self.pacman.dot_x += self.pacman.x_change_quantity
+        self.pacman.dot_y += self.pacman.y_change_quantity
+
+    # ゲーム内で描画されるドット絵の処理をする
     def draw(self):
+        # 真っ黒に
         pyxel.cls(0)
-        self.tilemap_draw()
-        # パックマン
-        # pyxel.blt(self.x+8,self.y+8,0,0,0,8,8)
-        # self.draw_cookie()
-        # self.draw_pcookie()
-        self.pacman_draw()
+        self.draw_tilemap()
+        # self.draw_enemy()
+        self.draw_pacman()
         self.draw_text()
 
-        # self.pacman_draw_afet()
-        self.count += 1
-        # print(pyxel.copy(self.x,self.y,0,0,8,8,8)
-        # self.deback_draw()
-    def draw_cookie(self):
-        for i in range(16):
-            for j in range(16):
-                if self.tilemap_state.get(i, j) == 5:
-                    pyxel.blt(i*8,j*8,0,8,16,8,8)
-    def draw_pcookie(self):
-        # 手打ちでおくよ
-        # pyxel.blt(tile_x*8,tile_y*8,0,0,16,8,8)
-        pyxel.blt(1*8,14*8,0,0,16,8,8)
-        pyxel.blt(14*8,1*8,0,0,16,8,8)
-        pyxel.blt(14*8,14*8,0,0,16,8,8)
-    def update_cookie(self):
-        pass
-    def draw_text(self):
-        # ここもとりあえずはよし
-        s = ""
-        if pyxel.btn(pyxel.KEY_W):
-            s = "W"
-        elif pyxel.btn(pyxel.KEY_D):
-            s = "D"
-        elif pyxel.btn(pyxel.KEY_S):
-            s = "S"
-        elif pyxel.btn(pyxel.KEY_A):
-            s = "A"
-        else:
-            s = "Non"
-        pyxel.text(80,140,"Input Key = " + s, 11)
-        pyxel.text(80,150,"score     = {}".format(self.pacman.score),11)
-
-
-    def tilemap_draw(self):
-        # ここは完成かなぁ
+    # タイルマップの描画処理
+    def draw_tilemap(self):
         base_x = 0
         base_y = 0
         tm = 0
@@ -115,204 +182,54 @@ class App:
         v = 0
         w = 16
         h = 16
+        # 指定したtm(template)番号の(u,v)座標から
+        # サイズ(w,h)の大きさを(base_x,base_y)座標に描画する
         pyxel.bltm(base_x,base_y,tm,u,v,w,h)
 
-    def pacman_draw(self):
-        print("self.pacman.vectol = {}".format(self.pacman.vectol))
+    def draw_pacman(self):
+        # 移動しない場合は描画したパックマンの状態をキープ
         if self.pacman.x_change_quantity == 0 and self.pacman.y_change_quantity == 0:
             pass
         else:
+            # 口の動きを表現するために、2フレームに１回
+            # 丸の状態を表示する
             if pyxel.frame_count % 2 == 0:
                 self.pacman.plot_pacman_x_coordinate = 0
             elif self.pacman.vectol == 1:
+                # 上向きに開いた口のイメージの座標を設定
                 self.pacman.plot_pacman_x_coordinate = 8
             elif self.pacman.vectol == 2:
+                # 下向きに開いた口のイメージの座標を設定
                 self.pacman.plot_pacman_x_coordinate = 16
             elif self.pacman.vectol == 3:
+                # 右向きに開いた口のイメージの座標を設定
                 self.pacman.plot_pacman_x_coordinate = 24
             elif self.pacman.vectol == 4:
+                # 左向きに開いた口のイメージの座標を設定
                 self.pacman.plot_pacman_x_coordinate = 32
-        pyxel.blt(self.pacman.x,self.pacman.y,0,self.pacman.plot_pacman_x_coordinate,0,8,8)
-        # if self.pacman.vectol == 1:
-        #     pyxel.blt(self.pacman.x,self.pacman.y,0,8,0,8,8)
-        # elif self.pacman.vectol == 2:
-        #     pyxel.blt(self.pacman.x,self.pacman.y,0,16,0,8,8)
-        # elif self.pacman.vectol == 3:
-        #     pyxel.blt(self.pacman.x,self.pacman.y,0,24,0,8,8)
-        # elif self.pacman.vectol == 4:
-        #     pyxel.blt(self.pacman.x,self.pacman.y,0,32,0,8,8)
-        # pyxel.blt(self.pacman.x,self.pacman.y,0,0,0,8,8)
+        # イメージ０に登録されている(self.pacman.plot_pacman_x_coordinate,0)の座標から
+        # 8×8サイズを参照にして、(self.pacman.dot_x,self.pacman.dot_y)の座標に描画する
+        pyxel.blt(self.pacman.dot_x,self.pacman.dot_y,0,self.pacman.plot_pacman_x_coordinate,0,8,8)
 
-    def pacman_draw_afet(self):
-        if self.pacman.draw_flag == True:
-            if self.pacman.count == 9:
-                self.pacman.draw_flag = False
-                self.pacman.count = 0
-                return
-            # 0方向なし, 1 上, 2を下, 3を右, 4を左
-            # self.vectol = 0
-            if self.pacman.vectol == 1:
-                self.pacman.y -= 1
-            elif self.pacman.vectol == 2:
-                self.pacman.y += 1
-            elif self.pacman.vectol == 3:
-                self.pacman.x += 1
-            elif self.pacman.vectol == 4:
-                self.pacman.x -= 1
-            self.pacman.count += 1
-        pyxel.blt(self.pacman.x,self.pacman.y,0,0,0,8,8)
-        print("x = {}, y = {}".format(self.pacman.x, self.pacman.y))
+    def draw_enemy(self):
+        pyxel.blt(self.enemy.dot_x,self.enemy.dot_y,0,0,8,8,8)
 
-        # else:
-        #     pyxel.blt(self.pacman.x,self.pacman.y,0,0,0,8,8)
+    def draw_text(self):
+        # スコアを表示
+        pyxel.text(8,130,"score = {}".format(self.pacman.score),11)
 
-    def pacman_move_after(self):
-        # print(pyxel.btn(pyxel.KEY_W))
-        if self.pacman.draw_flag == False:
-            if pyxel.btnp(pyxel.KEY_W, period = 8):
-                if self.map_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 3:
-                    self.pacman.vectol = 1
-                    self.pacman.tile_y = self.pacman.tile_y - 1
-                    self.pacman.last_frame_count = pyxel.frame_count
-                    print(pyxel.btn(pyxel.KEY_W))
-            elif pyxel.btnp(pyxel.KEY_S, period = 8):
-                if self.map_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 3:
-                    self.pacman.vectol = 2
-                    self.pacman.tile_y = self.pacman.tile_y + 1
-                    self.pacman.last_frame_count = pyxel.frame_count
-                    print(pyxel.btn(pyxel.KEY_S))
-            elif pyxel.btnp(pyxel.KEY_D, period = 8):
-                if self.map_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 3:
-                    self.pacman.vectol = 3
-                    self.pacman.tile_x = self.pacman.tile_x + 1
-                    self.pacman.last_frame_count = pyxel.frame_count
-                    print(pyxel.btn(pyxel.KEY_D))
-            elif pyxel.btnp(pyxel.KEY_A, period = 8):
-                if self.map_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 3:
-                    self.pacman.vectol = 4
-                    self.pacman.tile_x = self.pacman.tile_x - 1
-                    self.pacman.last_frame_count = pyxel.frame_count
-                    print(pyxel.btn(pyxel.KEY_A))
-                self.pacman.draw_flag = True
-            else:
-                 self.pacman.vectol = 0
-                 print("not move")
-
-
-    def tile_update(self):
-        print(self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y))
-        pyxel.blt(self.pacman.tile_x, self.pacman.tile_y, 0,40,0,8,8)
-        # if self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y) == 64:
-
-
-    def pacman_move(self):
-        if self.pacman.x % 8 == 0 and self.pacman.y % 8 == 0:
-            if self.tilemap_state.get(self.pacman.tile_x + self.pacman.x_change_quantity, self.pacman.tile_y + self.pacman.y_change_quantity) == 33:
-                self.pacman.x_change_quantity = 0
-                self.pacman.y_change_quantity = 0
-                # self.pacman.vectol = 0
-            elif pyxel.btn(pyxel.KEY_W):
-                if self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 5 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 64 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y - 1) == 65:
-                    self.pacman.x_change_quantity =  0
-                    self.pacman.y_change_quantity = -1
-                    self.pacman.vectol = 1
-                # print("KEY_W")
-            elif pyxel.btn(pyxel.KEY_S):
-                if self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 5 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 64 or self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y + 1) == 65:
-                    self.pacman.x_change_quantity =  0
-                    self.pacman.y_change_quantity =  1
-                    self.pacman.vectol = 2
-            elif pyxel.btn(pyxel.KEY_D):
-                if self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 5 or self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 64 or self.tilemap_state.get(self.pacman.tile_x + 1, self.pacman.tile_y) == 65:
-                    self.pacman.x_change_quantity =  1
-                    self.pacman.y_change_quantity =  0
-                    self.pacman.vectol = 3
-            elif pyxel.btn(pyxel.KEY_A):
-                if self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 5 or self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 64 or self.tilemap_state.get(self.pacman.tile_x - 1, self.pacman.tile_y) == 65:
-                    self.pacman.x_change_quantity = -1
-                    self.pacman.y_change_quantity =  0
-                    self.pacman.vectol = 4
-            # self.tile_update()
-            self.pacman.tile_x += self.pacman.x_change_quantity
-            self.pacman.tile_y += self.pacman.y_change_quantity
-
-        # self.pacman.tile_x = int(self.pacman.x/8)
-        # self.pacman.tile_y = int(self.pacman.y/8)
-        print("pacman.x = {}, pacman.y = {}".format(self.pacman.x, self.pacman.y))
-        print("tile_x = {}, tile_y = {}".format(self.pacman.tile_x, self.pacman.tile_y))
-        # print(self.tilemap_state.get(self.pacman.tile_x, self.pacman.tile_y))
-        # print(self.map_state.get(1, 1))
-
-        self.pacman.x += self.pacman.x_change_quantity
-        self.pacman.y += self.pacman.y_change_quantity
-
-        # if self.now_frame == 1:
-        #     if self.count % 2 == 0:
-        #         pyxel.blt(self.x+30,30,0,0,0,8,8)
-        #     else:
-        #         pyxel.blt(self.x+30,30,0,8,0,8,8)
-        # else:
-        #     if self.count % 2 == 0:
-        #         pyxel.blt(self.x+30,30,0,0,0,8,8)
-        #     else:
-        #         pyxel.blt(self.x+30,30,0,0,8,8,8)
-        # self.count+=1
-
-        # if self.x == 120:
-        #     self.now_frame = -1
-        # elif self.x == -40:
-        #     self.now_frame = 1
-        # self.x+=self.now_frame
+    def update_tilemap(self):
+        # ノーマルクッキーはスコア30点追加
+        # パワークッキーはスコア100点追加
+        # ノーマルクッキーに触れたら
+        if self.tilemap_state.get(self.pacman.tile_x,self.pacman.tile_y) == 65:
+            self.pacman.score += 30
+        # パワークッキーに触れたら
+        elif self.tilemap_state.get(self.pacman.tile_x,self.pacman.tile_y) == 64:
+            self.pacman.score += 100
+        # パックマンがノーマルクッキーとパワークッキーを踏んだら、何もないブロックに変える
+        pyxel.tilemap(0).set(self.pacman.tile_x,self.pacman.tile_y,5,refimg=0)
 
 
 
-
-        # pyxel.blt(0, 88, 0, 0, 88, 160, 32)
-        # pyxel.rect(0,0,10,20,5)
-
-    def update(self):
-        self.pacman_move()
-        # if self.now_frame % 60 == 0:
-        # self.pacman_move_after()
-        # 「q」キーで終了
-        if pyxel.btnp(pyxel.KEY_Q):
-            pyxel.quit()
-
-    def reset(self):
-        self.map_load()
-        self.pacman = Pacman()
-
-    def map_load(self):
-        load_file = open("map.txt")
-        self.map = [[int(x) for x in line.split()] for line in load_file]
-
-    def deback(self):
-        # mapをファイルから読めているか
-        for i in self.map:
-            print(i)
-
-    def deback_draw(self):
-        print(pyxel.tilemap(0).data)
-
-    def check_tilemap_state(self):
-        pass
-        # print(pyxel.tilemap(0).width)
-        # print(pyxel.tilemap(0).height)
-        # print(pyxel.tilemap(0).data)
-        # print(pyxel.tilemap(0).refimg)
-
-        # print(pyxel.tilemap(0).get(0,1))
-        # print(pyxel.tilemap(0).get(1,1))
-        # print(pyxel.tilemap(0).get(2,1))
-        # print(pyxel.tilemap(0).get(3,1))
-        # print(pyxel.tilemap(0).get(4,1))
-        # print(pyxel.tilemap(0).get(5,1))
-        # print(pyxel.tilemap(0).get(6,1))
-
-        # print(pyxel.image)
-        # print()
-        # print(pyxel.Image(0).get(1,1))
-        # print()
-
-if __name__ == '__main__':
-    App()
+App()
